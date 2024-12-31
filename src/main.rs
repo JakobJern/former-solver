@@ -1,9 +1,12 @@
 mod former;
-use crate::former::get_adjacent;
 use crate::former::Game;
 
 fn main() {
-    let game = Game::new();
-    println!("{:?}", game.find_moves());
-    println!("{:?}", get_adjacent(10));
+    let mut game = Game::new();
+
+    println!("{}", game.find_moves().len());
+    game.print();
+    game.apply_move(1);
+    game.print();
+
 }
