@@ -1,3 +1,5 @@
+use std::vec;
+
 static COLS: usize = 7;
 static ROWS: usize = 9;
 
@@ -20,31 +22,13 @@ pub struct Game {
 }
 
 impl Game {
-    fn _state_id(&self) -> (u128, u128) {
-        let mut upper_half = 0u128;
-        let mut lower_half = 0u128;
-        let mut quad_counter: u32 = 0;
-        for row in 0..9 {
-            for col in 0..7 {
-                let form = &self.grid[row * COLS + col];
-                if quad_counter > 31 {
-                    lower_half |= form_to_u128(form) << (quad_counter - 32) * 4;
-                } else {
-                    upper_half |= form_to_u128(form) << quad_counter * 4;
-                }
-                quad_counter += 1;
-            }
-        }
-        (upper_half, lower_half)
-    }
     pub fn new() -> Game {
-        let inp = include_str!("../input.txt");
+        let inp = include_str!("../31-12-2024.txt");
         let mut row = 0;
         let mut grid = [Form::None; 63]; // gamesize
         for l in inp.lines() {
             let mut col = 0;
             for c in l.chars() {
-                println!("grid at {} is {:?}", row * COLS + col, char_to_form(c));
                 grid[row * COLS + col] = char_to_form(c);
                 col += 1;
             }
@@ -63,37 +47,69 @@ impl Game {
             if seen[i] || self.grid[i] == Form::None {
                 continue;
             }
-            let group_color = self.grid[i];
-            let mut group = Vec::with_capacity(40);
-            group.push(i);
-            let mut group_index = 0;
-            while group_index < group.len() {
-                for adj_i in get_adjacent(group[group_index]) {
-                    if seen[adj_i] {
-                        continue;
-                    }
-                    if self.grid[adj_i] == group_color {
-                        seen[adj_i] = true;
-                        group.push(adj_i);
-                    }
-                }
-                group_index += 1;
+            let group = self.find_group(i);
+            for index in group {
+                seen[index] = true;
             }
             moves.push(i);
         }
         moves
     }
-}
+    pub fn apply_move(&mut self, index: usize) {
+        self.moves_made += 1;
+        let indices_to_delete = self.find_group(index);
+        for i in indices_to_delete {
+            self.grid[i] = Form::None;
+        }
+        self.apply_gravity();
+    }
 
-fn form_to_u128(form: &Form) -> u128 {
-    match form {
-        &Form::None => 0,
-        &Form::Blue => 1,
-        &Form::Green => 2,
-        &Form::Orange => 3,
-        &Form::Pink => 4,
+    fn apply_gravity(&mut self) {
+        for index in (0..COLS*ROWS).into_iter().rev() {
+            if self.grid[index] == Form::None {
+                for i in indices_above(index).into_iter() {
+                    if i < 7 {
+                        self.grid[i] = Form::None;
+                    } else {
+                        self.grid[i] = self.grid[i-7];
+                    }
+                }
+            }
+        }
+    }
+
+    fn find_group(&self, index: usize) -> Vec<usize> {
+        let group_color = self.grid[index];
+        let mut group = Vec::with_capacity(15);
+        group.push(index);
+        let mut group_index = 0;
+        let mut pushed = vec![false; COLS * ROWS];
+        while group_index < group.len() {
+            for adj_i in adjacent_indices(group[group_index]) {
+                if pushed[adj_i] {
+                    continue;
+                }
+                if self.grid[adj_i] == group_color {
+                    group.push(adj_i);
+                    pushed[adj_i] = true;
+                }
+            }
+            group_index += 1;
+        }
+        group
+    }
+
+    pub fn print(&self) {
+        for row in 0..ROWS {
+            for col in 0..COLS {
+                print!("{}", form_to_char(self.grid[COLS*row + col]));
+            }
+            println!();
+        }
+        println!();
     }
 }
+
 
 fn char_to_form(c: char) -> Form {
     match c {
@@ -105,7 +121,17 @@ fn char_to_form(c: char) -> Form {
     }
 }
 
-pub fn get_adjacent(i: usize) -> Vec<usize> {
+fn form_to_char(form: Form) -> char {
+    match form {
+        Form::Blue => 'b',
+        Form::Green => 'g',
+        Form::Orange => 'o',
+        Form::Pink => 'p',
+        Form::None => ' ',
+    }
+}
+
+fn adjacent_indices(i: usize) -> Vec<usize> {
     let mut adj = Vec::with_capacity(4);
     if i >= COLS {
         adj.push(i - COLS);
@@ -120,4 +146,14 @@ pub fn get_adjacent(i: usize) -> Vec<usize> {
         adj.push(i - 1);
     }
     adj
+}
+
+fn indices_above(mut i: usize) -> Vec<usize>{
+    let mut above = Vec::with_capacity(8);
+    above.push(i);
+    while i >= 7 {
+        i -= 7;
+        above.push(i);
+    }
+    above
 }
