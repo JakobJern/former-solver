@@ -6,7 +6,7 @@ fn main() {
 
     println!("{}", game.find_moves().len());
     game.print();
-    game.apply_move(1);
-    game.print();
+    let game_with_move = game.new_game_with_move(1);
+    game_with_move.print();
 
 }

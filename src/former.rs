@@ -12,18 +12,17 @@ enum Form {
     Pink = 4,
 }
 
-fn minimum_moves() -> u8 {
-    0
-}
 
+#[derive(Clone)]
 pub struct Game {
     grid: [Form; 63],
     moves_made: u8,
+    minimum_moves: u8
 }
 
 impl Game {
     pub fn new() -> Game {
-        let inp = include_str!("../31-12-2024.txt");
+        let inp = include_str!("../01-01-2025.txt");
         let mut row = 0;
         let mut grid = [Form::None; 63]; // gamesize
         for l in inp.lines() {
@@ -34,36 +33,41 @@ impl Game {
             }
             row += 1;
         }
-        Game {
+        let mut new_game = Game {
             grid,
             moves_made: 0,
-        }
+            minimum_moves: 4,
+        };
+        new_game.minimum_moves = new_game.minimum_moves();
+        new_game
     }
-
-    pub fn find_moves(&self) -> Vec<usize> {
-        let mut seen = vec![false; COLS * ROWS];
-        let mut moves = Vec::new();
-        for i in 0..COLS * ROWS {
-            if seen[i] || self.grid[i] == Form::None {
-                continue;
+    
+    
+    fn minimum_moves(&self) -> u8 {
+        let mut blues = [false; 7];
+        let mut greens = [false; 7];
+        let mut oranges = [false; 7];
+        let mut pinks = [false; 7];
+        for col in 0..COLS {
+            for row in 0..ROWS {
+                match self.grid[row*COLS + col] {
+                    Form::Blue => blues[col] = true,
+                    Form::Green => greens[col] = true,
+                    Form::Orange => oranges[col] = true,
+                    Form::Pink => pinks[col] = true,
+                    _ => (),
+                }
             }
-            let group = self.find_group(i);
-            for index in group {
-                seen[index] = true;
-            }
-            moves.push(i);
         }
-        moves
+        let mut groups = 0;
+        groups += groups_of_color(&blues);
+        groups += groups_of_color(&greens);
+        groups += groups_of_color(&oranges);
+        groups += groups_of_color(&pinks);
+        groups
     }
-    pub fn apply_move(&mut self, index: usize) {
-        self.moves_made += 1;
-        let indices_to_delete = self.find_group(index);
-        for i in indices_to_delete {
-            self.grid[i] = Form::None;
-        }
-        self.apply_gravity();
-    }
-
+    
+    
     fn apply_gravity(&mut self) {
         for index in (0..COLS*ROWS).into_iter().rev() {
             if self.grid[index] == Form::None {
@@ -77,7 +81,7 @@ impl Game {
             }
         }
     }
-
+    
     fn find_group(&self, index: usize) -> Vec<usize> {
         let group_color = self.grid[index];
         let mut group = Vec::with_capacity(15);
@@ -98,6 +102,34 @@ impl Game {
         }
         group
     }
+    
+    pub fn find_moves(&self) -> Vec<usize> {
+        let mut seen = vec![false; COLS * ROWS];
+        let mut moves = Vec::new();
+        for i in 0..COLS * ROWS {
+            if seen[i] || self.grid[i] == Form::None {
+                continue;
+            }
+            let group = self.find_group(i);
+            for index in group {
+                seen[index] = true;
+            }
+            moves.push(i);
+        }
+        moves
+    }
+
+    pub fn new_game_with_move(&self, index: usize) -> Game {
+        let mut game_with_move = self.clone();
+        game_with_move.moves_made = self.moves_made + 1;
+        let indices_to_delete = game_with_move.find_group(index);
+        for i in indices_to_delete {
+            game_with_move.grid[i] = Form::None;
+        }
+        game_with_move.apply_gravity();
+        game_with_move.minimum_moves = game_with_move.minimum_moves();
+        game_with_move
+    }
 
     pub fn print(&self) {
         for row in 0..ROWS {
@@ -108,6 +140,7 @@ impl Game {
         }
         println!();
     }
+
 }
 
 
@@ -156,4 +189,16 @@ fn indices_above(mut i: usize) -> Vec<usize>{
         above.push(i);
     }
     above
+}
+
+fn groups_of_color(color_in_col: &[bool; 7]) -> u8 {
+    let mut prev = false;
+    let mut groups = 0;
+    for current in color_in_col {
+        if !prev && *current {
+            groups += 1;
+        }
+        prev = *current;
+    }
+    groups
 }
