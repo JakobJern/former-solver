@@ -3,8 +3,9 @@ use std::vec;
 static COLS: usize = 7;
 static ROWS: usize = 9;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-enum Form {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(u8)]
+pub enum Form {
     None = 0,
     Blue = 1,
     Green = 2,
@@ -17,7 +18,8 @@ enum Form {
 pub struct Game {
     grid: [Form; 63],
     moves_made: u8,
-    minimum_moves: u8
+    minimum_additional_moves: u8,
+    move_list: Vec<u8>
 }
 
 impl Game {
@@ -36,35 +38,16 @@ impl Game {
         let mut new_game = Game {
             grid,
             moves_made: 0,
-            minimum_moves: 4,
+            minimum_additional_moves: 4,
+            move_list: Vec::new()
         };
-        new_game.minimum_moves = new_game.minimum_moves();
+        new_game.minimum_additional_moves = new_game.minimum_moves();
         new_game
     }
     
     
     fn minimum_moves(&self) -> u8 {
-        let mut blues = [false; 7];
-        let mut greens = [false; 7];
-        let mut oranges = [false; 7];
-        let mut pinks = [false; 7];
-        for col in 0..COLS {
-            for row in 0..ROWS {
-                match self.grid[row*COLS + col] {
-                    Form::Blue => blues[col] = true,
-                    Form::Green => greens[col] = true,
-                    Form::Orange => oranges[col] = true,
-                    Form::Pink => pinks[col] = true,
-                    _ => (),
-                }
-            }
-        }
-        let mut groups = 0;
-        groups += groups_of_color(&blues);
-        groups += groups_of_color(&greens);
-        groups += groups_of_color(&oranges);
-        groups += groups_of_color(&pinks);
-        groups
+        (self.find_moves().len()/4) as u8
     }
     
     
@@ -119,16 +102,34 @@ impl Game {
         moves
     }
 
+    pub fn is_done(&self) -> bool {
+        for i in 0..ROWS*COLS {
+            if self.grid[i] != Form::None {
+                return false
+            }
+        }
+        true
+    }
+
     pub fn new_game_with_move(&self, index: usize) -> Game {
         let mut game_with_move = self.clone();
         game_with_move.moves_made = self.moves_made + 1;
+        game_with_move.move_list.push(index as u8);
         let indices_to_delete = game_with_move.find_group(index);
         for i in indices_to_delete {
             game_with_move.grid[i] = Form::None;
         }
         game_with_move.apply_gravity();
-        game_with_move.minimum_moves = game_with_move.minimum_moves();
+        game_with_move.minimum_additional_moves = game_with_move.minimum_moves();
         game_with_move
+    }
+
+    pub fn get_score(&self) -> u8 {
+        self.moves_made + self.minimum_additional_moves
+    }
+
+    pub fn get_grid(&self) -> [Form; 63] {
+        self.grid
     }
 
     pub fn print(&self) {
@@ -139,6 +140,12 @@ impl Game {
             println!();
         }
         println!();
+    }
+
+    pub fn print_move_list(&self) {
+        for m in &self.move_list {
+            println!("Row: {}, Col: {}", m/7, m%7);
+        }
     }
 
 }
@@ -201,4 +208,44 @@ fn groups_of_color(color_in_col: &[bool; 7]) -> u8 {
         prev = *current;
     }
     groups
+}
+
+
+impl PartialEq for Game {
+    fn eq(&self, other: &Self) -> bool {
+        if (self.minimum_additional_moves == other.minimum_additional_moves) && (self.moves_made == other.moves_made) {
+            true
+        } else {
+            false
+        }
+    }
+}
+
+impl Eq for Game {
+    fn assert_receiver_is_total_eq(&self) {
+        ()
+    }
+}
+
+impl PartialOrd for Game {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let score = self.minimum_additional_moves + self.moves_made;
+        let other_score = other.minimum_additional_moves + other.moves_made;
+        if score < other_score {
+            return Some(std::cmp::Ordering::Greater);
+        } else if score > other_score {
+            return Some(std::cmp::Ordering::Less);
+        } else {
+            if self.moves_made > other.moves_made {
+                return Some(std::cmp::Ordering::Greater);
+            }
+            return Some(std::cmp::Ordering::Equal);
+        }
+    }
+}
+
+impl Ord for Game {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other).unwrap()
+    }
 }
