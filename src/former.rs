@@ -17,14 +17,14 @@ pub enum Form {
 #[derive(Clone)]
 pub struct Game {
     grid: [Form; 63],
-    moves_made: u8,
+    pub moves_made: u8,
     minimum_additional_moves: u8,
     move_list: Vec<u8>
 }
 
 impl Game {
     pub fn new() -> Game {
-        let inp = include_str!("../01-01-2025.txt");
+        let inp = include_str!("../02-01-2025.txt");
         let mut row = 0;
         let mut grid = [Form::None; 63]; // gamesize
         for l in inp.lines() {
@@ -45,16 +45,43 @@ impl Game {
         new_game
     }
     
-    
-    fn minimum_moves(&self) -> u8 {
-        (self.find_moves().len()/4) as u8
+    pub fn heuristic(&self) -> u8 {
+        self.find_moves().len() as u8 + self.minimum_additional_moves
     }
     
+    fn estimated_moves(&self) -> u8 {
+        (self.find_moves().len()/4) as u8
+    }
+
+    fn minimum_moves(&self) -> u8 {
+        let mut blues = [false; 7];
+        let mut greens = [false; 7];
+        let mut oranges = [false; 7];
+        let mut pinks = [false; 7];
+        for col in 0..COLS {
+            for row in 0..ROWS {
+                match self.grid[row*COLS + col] {
+                    Form::Blue => blues[col] = true,
+                    Form::Green => greens[col] = true,
+                    Form::Orange => oranges[col] = true,
+                    Form::Pink => pinks[col] = true,
+                    _ => (),
+                }
+            }
+        }
+        let mut groups = 0;
+        groups += groups_of_color(&blues);
+        groups += groups_of_color(&greens);
+        groups += groups_of_color(&oranges);
+        groups += groups_of_color(&pinks);
+        groups
+    }
+
     
     fn apply_gravity(&mut self) {
-        for index in (0..COLS*ROWS).into_iter().rev() {
+        for index in 0..COLS*ROWS {
             if self.grid[index] == Form::None {
-                for i in indices_above(index).into_iter() {
+                for i in indices_above(index) {
                     if i < 7 {
                         self.grid[i] = Form::None;
                     } else {
@@ -191,8 +218,8 @@ fn adjacent_indices(i: usize) -> Vec<usize> {
 fn indices_above(mut i: usize) -> Vec<usize>{
     let mut above = Vec::with_capacity(8);
     above.push(i);
-    while i >= 7 {
-        i -= 7;
+    while i >= COLS {
+        i -= COLS;
         above.push(i);
     }
     above
