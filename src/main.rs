@@ -5,15 +5,9 @@ use std::collections::BinaryHeap;
 use ahash::AHashSet;
 fn main() {
 
-    let game = Game::new();
-    let new_game = game.new_game_with_move(6*7 + 4);
-    new_game.print();
-    let new_game = new_game.new_game_with_move(7*7 + 6);
-    new_game.print();
+    beam_search(500);
+    a_star();
 
-    beam_search(10);
-
-    // a_star();
 }
 
 fn a_star() {
@@ -47,6 +41,7 @@ fn a_star() {
 
 fn beam_search(mut beamwidth: usize) {
     let mut best_finish = 99;
+    println!("Beamwidth now {beamwidth}");
     while beamwidth < 500_000 {
         let game = Game::new();
         let mut queue: Vec<Game> = Vec::new();
@@ -75,7 +70,7 @@ fn beam_search(mut beamwidth: usize) {
                 }
             }
         }
-        beamwidth *= 3;
+        beamwidth *= 10;
         println!("Beamwidth now {beamwidth}")
     }
 
