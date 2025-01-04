@@ -159,7 +159,7 @@ impl Game {
     pub fn get_grid(&self) -> [Form; 63] {
         self.grid
     }
-
+    
     pub fn print(&self) {
         for row in 0..ROWS {
             for col in 0..COLS {
@@ -169,15 +169,37 @@ impl Game {
         }
         println!();
     }
-
+    
     pub fn print_move_list(&self) {
         for m in &self.move_list {
             println!("Row: {}, Col: {}", m/7, m%7);
         }
     }
-
+    
 }
 
+impl PartialOrd for Game {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let score = self.get_score();
+        let other_score = other.get_score();
+        if score < other_score {
+            return Some(std::cmp::Ordering::Greater);
+        } else if score > other_score {
+            return Some(std::cmp::Ordering::Less);
+        } else {
+            if self.moves_made > other.moves_made {
+                return Some(std::cmp::Ordering::Greater);
+            }
+            return Some(std::cmp::Ordering::Equal);
+        }
+    }
+}
+
+impl Ord for Game {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
 
 fn char_to_form(c: char) -> Form {
     match c {
@@ -236,27 +258,4 @@ fn groups_of_color(color_in_col: &[bool; 7]) -> u8 {
         prev = current;
     }
     groups
-}
-
-impl PartialOrd for Game {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        let score = self.get_score();
-        let other_score = other.get_score();
-        if score < other_score {
-            return Some(std::cmp::Ordering::Greater);
-        } else if score > other_score {
-            return Some(std::cmp::Ordering::Less);
-        } else {
-            if self.moves_made > other.moves_made {
-                return Some(std::cmp::Ordering::Greater);
-            }
-            return Some(std::cmp::Ordering::Equal);
-        }
-    }
-}
-
-impl Ord for Game {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.partial_cmp(other).unwrap()
-    }
 }
