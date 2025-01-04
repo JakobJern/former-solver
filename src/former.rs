@@ -14,7 +14,7 @@ pub enum Form {
 }
 
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Game {
     grid: [Form; 63],
     pub moves_made: u8,
@@ -24,7 +24,7 @@ pub struct Game {
 
 impl Game {
     pub fn new() -> Game {
-        let inp = include_str!("../02-01-2025.txt");
+        let inp = include_str!("../04-01-2025.txt");
         let mut row = 0;
         let mut grid = [Form::None; 63]; // gamesize
         for l in inp.lines() {
@@ -236,23 +236,6 @@ fn groups_of_color(color_in_col: &[bool; 7]) -> u8 {
         prev = current;
     }
     groups
-}
-
-
-impl PartialEq for Game {
-    fn eq(&self, other: &Self) -> bool {
-        if (self.minimum_additional_moves == other.minimum_additional_moves) && (self.moves_made == other.moves_made) {
-            true
-        } else {
-            false
-        }
-    }
-}
-
-impl Eq for Game {
-    fn assert_receiver_is_total_eq(&self) {
-        ()
-    }
 }
 
 impl PartialOrd for Game {
