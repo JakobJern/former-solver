@@ -78,10 +78,11 @@ impl Game {
     }
 
     
-    fn apply_gravity(&mut self) {
-        for index in 0..COLS*ROWS {
-            if self.grid[index] == Form::None {
-                for i in indices_above(index) {
+    fn apply_gravity(&mut self, deleted_indices: &mut Vec<usize>) {
+        deleted_indices.sort();
+        for index in deleted_indices {
+            if self.grid[*index] == Form::None {
+                for i in indices_above(*index) {
                     if i < 7 {
                         self.grid[i] = Form::None;
                     } else {
@@ -130,7 +131,7 @@ impl Game {
     }
 
     pub fn is_done(&self) -> bool {
-        for i in 0..ROWS*COLS {
+        for i in ROWS*(COLS-1)..ROWS*COLS {
             if self.grid[i] != Form::None {
                 return false
             }
@@ -140,13 +141,13 @@ impl Game {
 
     pub fn new_game_with_move(&self, index: usize) -> Game {
         let mut game_with_move = self.clone();
-        game_with_move.moves_made = self.moves_made + 1;
+        game_with_move.moves_made += 1;
         game_with_move.move_list.push(index as u8);
-        let indices_to_delete = game_with_move.find_group(index);
-        for i in indices_to_delete {
+        let mut indices_to_delete = game_with_move.find_group(index);
+        for &i in &indices_to_delete {
             game_with_move.grid[i] = Form::None;
         }
-        game_with_move.apply_gravity();
+        game_with_move.apply_gravity(&mut indices_to_delete);
         game_with_move.minimum_additional_moves = game_with_move.minimum_moves();
         game_with_move
     }
@@ -228,11 +229,11 @@ fn indices_above(mut i: usize) -> Vec<usize>{
 fn groups_of_color(color_in_col: &[bool; 7]) -> u8 {
     let mut prev = false;
     let mut groups = 0;
-    for current in color_in_col {
-        if !prev && *current {
+    for &current in color_in_col {
+        if !prev && current {
             groups += 1;
         }
-        prev = *current;
+        prev = current;
     }
     groups
 }
@@ -256,8 +257,8 @@ impl Eq for Game {
 
 impl PartialOrd for Game {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        let score = self.minimum_additional_moves + self.moves_made;
-        let other_score = other.minimum_additional_moves + other.moves_made;
+        let score = self.get_score();
+        let other_score = other.get_score();
         if score < other_score {
             return Some(std::cmp::Ordering::Greater);
         } else if score > other_score {
