@@ -52,7 +52,8 @@ fn beam_search(mut beamwidth: usize) {
         while !queue.is_empty() {
             let current_game = queue.remove(0);
             if current_game.moves_made > applied_moves {
-                queue.select_nth_unstable_by(beamwidth, |a, b| a.heuristic().cmp(&b.heuristic()));
+                let length = queue.len();
+                queue = (queue.select_nth_unstable_by(beamwidth.clamp(0, length-1), |a, b| a.heuristic().cmp(&b.heuristic()))).0.to_vec();
                 applied_moves = current_game.moves_made;
             }
             for game_move in current_game.find_moves() {
