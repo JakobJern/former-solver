@@ -5,8 +5,8 @@ use std::collections::BinaryHeap;
 use ahash::AHashSet;
 fn main() {
 
-    beam_search(500);
-    a_star();
+    beam_search(300);
+    // a_star();
 
 }
 
@@ -42,7 +42,7 @@ fn a_star() {
 fn beam_search(mut beamwidth: usize) {
     let mut best_finish = 99;
     println!("Beamwidth now {beamwidth}");
-    while beamwidth < 500_000 {
+    while beamwidth < 300_001 {
         let game = Game::new();
         let mut queue: Vec<Game> = Vec::new();
         queue.push(game);
@@ -52,8 +52,7 @@ fn beam_search(mut beamwidth: usize) {
         while !queue.is_empty() {
             let current_game = queue.remove(0);
             if current_game.moves_made > applied_moves {
-                queue.sort_by(|a, b| a.heuristic().cmp(&b.heuristic()));
-                queue = queue.into_iter().take(beamwidth).collect();
+                queue.select_nth_unstable_by(beamwidth, |a, b| a.heuristic().cmp(&b.heuristic()));
                 applied_moves = current_game.moves_made;
             }
             for game_move in current_game.find_moves() {
