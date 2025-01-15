@@ -24,7 +24,7 @@ pub struct Game {
 
 impl Game {
     pub fn new() -> Game {
-        let inp = include_str!("../09-01-2025.txt");
+        let inp = include_str!("../games/11-01-2025.txt");
         let mut row = 0;
         let mut grid = [Form::None; 63]; // gamesize
         for l in inp.lines() {
